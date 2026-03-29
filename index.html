@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Website</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2248%22 fill=%22none%22 stroke=%22red%22 stroke-width=%221%22/><circle cx=%2250%22 cy=%2250%22 r=%222%22 fill=%22red%22/></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --p: #ff0000; --b: #000; --g: #1a1a1a; }
+        body { background: var(--b); color: var(--p); font-family: 'Courier New', monospace; height: 100vh; overflow: hidden; perspective: 1000px; }
+        #canvas-webgl { position: fixed; inset: 0; z-index: -1; opacity: 0.4; }
+        .glitch-box { position: relative; border: 1px solid var(--p); background: rgba(255,0,0,0.05); box-shadow: 0 0 20px rgba(255,0,0,0.2); transition: all 0.1s; }
+        .glitch-box:hover { transform: translateZ(50px); box-shadow: 0 0 40px var(--p); }
+        .scanner-line { position: absolute; width: 100%; height: 2px; background: var(--p); top: 0; animation: scan 4s linear infinite; opacity: 0.5; pointer-events: none; }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+        .data-bit { position: absolute; font-size: 10px; opacity: 0.3; pointer-events: none; }
+        #core-ui { transform-style: preserve-3d; transition: transform 0.2s ease-out; }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+    <canvas id="canvas-webgl"></canvas>
+    <div class="scanner-line"></div>
+
+    <div id="core-ui" class="w-full max-w-6xl">
+        <div class="grid grid-cols-12 gap-4 mb-8 text-[10px] uppercase tracking-widest opacity-40">
+            <div class="col-span-3 border-l-2 border-current pl-2">Sync: Operational</div>
+            <div class="col-span-6 text-center">Entity Identification: [AUTHORIZED]</div>
+            <div id="runtime" class="col-span-3 text-right">T+ 00:00:00</div>
+        </div>
+
+        <div class="glitch-box p-12 mb-6">
+            <div class="flex justify-between items-end mb-12">
+                <h1 class="text-8xl font-black italic tracking-tighter leading-none">OMNIPOTENCE</h1>
+                <div class="text-right">
+                    <p class="text-xs">BIOMETRIC_MATCH: 99.9%</p>
+                    <p id="cpu-load" class="text-xs">NEURAL_LOAD: 2%</p>
+                </div>
+            </div>
+
+            <div class="relative">
+                <input type="text" id="query" oninput="process(this.value)"
+                       class="w-full bg-transparent border-b-2 border-red-900 p-6 text-5xl outline-none placeholder:opacity-10 font-bold uppercase"
+                       placeholder="ACCESS PROTOCOL...">
+                <div id="results" class="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+            </div>
+        </div>
+
+        <div class="flex gap-4 opacity-20 text-[8px] overflow-hidden whitespace-nowrap">
+            <div id="stream-alpha"></div>
+        </div>
+    </div>
+
+    <div id="void" class="fixed inset-0 bg-red-950 flex flex-col items-center justify-center hidden z-50">
+        <div id="loading-bar" class="w-64 h-1 bg-red-900 mb-8 overflow-hidden relative"><div id="progress" class="absolute inset-0 bg-red-500 w-0"></div></div>
+        <h2 id="void-text" class="text-9xl font-black italic tracking-tighter uppercase mb-20 animate-pulse">INITIATING...</h2>
+        <button onclick="terminate()" class="px-20 py-4 border border-red-500 text-xs font-black tracking-[1em] hover:bg-red-500 hover:text-black">KILL_SYSTEM</button>
+    </div>
+
+    <script>
+        let aCtx, osc;
+        let start = Date.now();
+
+        function sync() {
+            const now = new Date();
+            document.getElementById('runtime').innerText = `T+ ${now.toTimeString().split(' ')[0]}`;
+            document.getElementById('cpu-load').innerText = `NEURAL_LOAD: ${Math.floor(Math.random()*15 + 85)}%`;
+            requestAnimationFrame(sync);
+        }
+        sync();
+
+        window.addEventListener('mousemove', (e) => {
+            const x = (window.innerWidth / 2 - e.pageX) / 50;
+            const y = (window.innerHeight / 2 - e.pageY) / 50;
+            document.getElementById('core-ui').style.transform = `rotateX(${y}deg) rotateY(${-x}deg)`;
+        });
+
+        function tone(f, t='sawtooth') {
+            if(!aCtx) aCtx = new AudioContext();
+            let o = aCtx.createOscillator();
+            let g = aCtx.createGain();
+            o.type = t; o.frequency.value = f;
+            g.gain.setValueAtTime(0.1, aCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, aCtx.currentTime + 0.5);
+            o.connect(g); g.connect(aCtx.destination);
+            o.start(); o.stop(aCtx.currentTime + 0.5);
+        }
+
+        function process(q) {
+            const r = document.getElementById('results');
+            if(!q) { r.innerHTML = ''; return; }
+            tone(Math.random()*100 + 50, 'square');
+            const data = ["Ascension", "Singularity", "Dissolution", "Rebirth", "Override", "Eternity", "Null_Vector", "Cortex_Link"];
+            const hits = data.filter(d => d.toLowerCase().includes(q.toLowerCase()));
+            r.innerHTML = hits.map(h => `
+                <div onclick="launch('${h}')" class="p-4 border border-red-900 hover:bg-red-600 hover:text-black cursor-crosshair transition-all">
+                    <p class="text-[8px] mb-1">NODE_${Math.floor(Math.random()*9999)}</p>
+                    <p class="font-black italic text-lg uppercase">${h}</p>
+                </div>
+            `).join('');
+        }
+
+        function launch(m) {
+            tone(20, 'sine');
+            document.getElementById('void').classList.remove('hidden');
+            document.getElementById('void-text').innerText = m;
+            let p = 0;
+            const iv = setInterval(() => {
+                p += Math.random() * 15;
+                document.getElementById('progress').style.width = p + '%';
+                tone(100 + p, 'sawtooth', 0.01);
+                if(p >= 100) {
+                    clearInterval(iv);
+                    const msg = new SpeechSynthesisUtterance(`Entity confirmed. Welcome to ${m}.`);
+                    msg.pitch = 0.1; msg.rate = 0.5; window.speechSynthesis.speak(msg);
+                }
+            }, 100);
+        }
+
+        function terminate() {
+            location.reload();
+        }
+
+        const canvas = document.getElementById('canvas-webgl');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        function particles() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            ctx.fillStyle = "#300";
+            for(let i=0; i<100; i++) {
+                ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 2, 2);
+            }
+            requestAnimationFrame(particles);
+        }
+        particles();
+
+        const s = document.getElementById('stream-alpha');
+        setInterval(() => {
+            s.innerText = Array(50).fill(0).map(() => Math.random() > 0.5 ? "1" : "0").join(" ");
+        }, 100);
+
+        document.addEventListener('keydown', e => { if(e.key === 'Escape') terminate(); });
+    </script>
+</body>
+</html>
