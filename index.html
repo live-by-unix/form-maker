@@ -3,144 +3,346 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Focus Website</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2248%22 fill=%22none%22 stroke=%22red%22 stroke-width=%221%22/><circle cx=%2250%22 cy=%2250%22 r=%222%22 fill=%22red%22/></svg>">
+    <title>ApexForms</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --p: #ff0000; --b: #000; --g: #1a1a1a; }
-        body { background: var(--b); color: var(--p); font-family: 'Courier New', monospace; height: 100vh; overflow: hidden; perspective: 1000px; }
-        #canvas-webgl { position: fixed; inset: 0; z-index: -1; opacity: 0.4; }
-        .glitch-box { position: relative; border: 1px solid var(--p); background: rgba(255,0,0,0.05); box-shadow: 0 0 20px rgba(255,0,0,0.2); transition: all 0.1s; }
-        .glitch-box:hover { transform: translateZ(50px); box-shadow: 0 0 40px var(--p); }
-        .scanner-line { position: absolute; width: 100%; height: 2px; background: var(--p); top: 0; animation: scan 4s linear infinite; opacity: 0.5; pointer-events: none; }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-        .data-bit { position: absolute; font-size: 10px; opacity: 0.3; pointer-events: none; }
-        #core-ui { transform-style: preserve-3d; transition: transform 0.2s ease-out; }
+        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@200;800&family=Inter:wght@300;400;700&display=swap');
+        :root { --p: #4f46e5; --s: #06b6d4; --bg: #fdfdfd; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); scroll-behavior: smooth; }
+        h1, h2, .font-heading { font-family: 'Bricolage Grotesque', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: flowIn 0.5s ease-out; }
+        @keyframes flowIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.05); }
+        .sidebar-link.active { background: var(--p); color: white; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4); }
+        .q-node { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-left: 0px solid var(--p); }
+        .q-node:hover { border-left-width: 8px; transform: translateX(5px); background: #f8fafc; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        input[type="range"] { accent-color: var(--p); }
     </style>
 </head>
-<body class="flex items-center justify-center p-4">
+<body class="text-slate-900 custom-scroll">
 
-    <canvas id="canvas-webgl"></canvas>
-    <div class="scanner-line"></div>
-
-    <div id="core-ui" class="w-full max-w-6xl">
-        <div class="grid grid-cols-12 gap-4 mb-8 text-[10px] uppercase tracking-widest opacity-40">
-            <div class="col-span-3 border-l-2 border-current pl-2">Sync: Operational</div>
-            <div class="col-span-6 text-center">Entity Identification: [AUTHORIZED]</div>
-            <div id="runtime" class="col-span-3 text-right">T+ 00:00:00</div>
-        </div>
-
-        <div class="glitch-box p-12 mb-6">
-            <div class="flex justify-between items-end mb-12">
-                <h1 class="text-8xl font-black italic tracking-tighter leading-none">OMNIPOTENCE</h1>
-                <div class="text-right">
-                    <p class="text-xs">BIOMETRIC_MATCH: 99.9%</p>
-                    <p id="cpu-load" class="text-xs">NEURAL_LOAD: 2%</p>
+    <div class="flex min-h-screen">
+        <aside id="nav-container" class="w-72 border-r bg-white flex flex-col sticky top-0 h-screen">
+            <div class="p-8">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                        <i data-lucide="infinity"></i>
+                    </div>
+                    <h1 class="text-2xl font-black tracking-tighter">APEX<span class="text-indigo-600">300</span></h1>
                 </div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Singularity Engine</p>
             </div>
 
-            <div class="relative">
-                <input type="text" id="query" oninput="process(this.value)"
-                       class="w-full bg-transparent border-b-2 border-red-900 p-6 text-5xl outline-none placeholder:opacity-10 font-bold uppercase"
-                       placeholder="ACCESS PROTOCOL...">
-                <div id="results" class="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+            <nav class="flex-1 px-4 space-y-2">
+                <button onclick="switchTab('build')" id="m-build" class="sidebar-link active w-full flex items-center gap-3 px-4 py-4 rounded-2xl font-bold text-sm transition-all">
+                    <i data-lucide="layers" class="w-5 h-5"></i> Architect
+                </button>
+                <button onclick="switchTab('analytics')" id="m-analytics" class="sidebar-link w-full flex items-center gap-3 px-4 py-4 rounded-2xl font-bold text-sm text-slate-500 hover:bg-slate-50 transition-all">
+                    <i data-lucide="bar-chart-big" class="w-5 h-5"></i> Intelligence
+                </button>
+                <button onclick="switchTab('data')" id="m-data" class="sidebar-link w-full flex items-center gap-3 px-4 py-4 rounded-2xl font-bold text-sm text-slate-500 hover:bg-slate-50 transition-all">
+                    <i data-lucide="database" class="w-5 h-5"></i> Records
+                </button>
+                <button onclick="switchTab('settings')" id="m-settings" class="sidebar-link w-full flex items-center gap-3 px-4 py-4 rounded-2xl font-bold text-sm text-slate-500 hover:bg-slate-50 transition-all">
+                    <i data-lucide="settings-2" class="w-5 h-5"></i> System
+                </button>
+            </nav>
+
+            <div class="p-6 border-t">
+                <button onclick="copyLink()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 shadow-xl transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="external-link" class="w-4 h-4"></i> Deploy Form
+                </button>
             </div>
-        </div>
+        </aside>
 
-        <div class="flex gap-4 opacity-20 text-[8px] overflow-hidden whitespace-nowrap">
-            <div id="stream-alpha"></div>
-        </div>
-    </div>
+        <main class="flex-1 bg-slate-50/50 p-12 overflow-y-auto custom-scroll">
+            
+            <section id="build-tab" class="tab-content active space-y-10">
+                <div class="bg-white p-16 rounded-[4rem] shadow-sm border border-slate-100">
+                    <input id="form-name" type="text" placeholder="Global Data Protocol" class="text-7xl font-black w-full outline-none bg-transparent placeholder:text-slate-100 font-heading">
+                    <input id="form-desc" type="text" placeholder="High-fidelity response capture for enterprise-grade analytics." class="text-2xl text-slate-400 w-full mt-6 outline-none bg-transparent font-light">
+                </div>
 
-    <div id="void" class="fixed inset-0 bg-red-950 flex flex-col items-center justify-center hidden z-50">
-        <div id="loading-bar" class="w-64 h-1 bg-red-900 mb-8 overflow-hidden relative"><div id="progress" class="absolute inset-0 bg-red-500 w-0"></div></div>
-        <h2 id="void-text" class="text-9xl font-black italic tracking-tighter uppercase mb-20 animate-pulse">INITIATING...</h2>
-        <button onclick="terminate()" class="px-20 py-4 border border-red-500 text-xs font-black tracking-[1em] hover:bg-red-500 hover:text-black">KILL_SYSTEM</button>
+                <div class="bg-indigo-700 p-10 rounded-[3rem] text-white flex justify-between items-center relative overflow-hidden group shadow-2xl shadow-indigo-100">
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Root Identity</span>
+                            <span class="text-indigo-200 text-xs">Biometric/Auth Ready</span>
+                        </div>
+                        <h2 class="text-4xl font-black font-heading tracking-tight">System Username Capture</h2>
+                        <p class="text-indigo-100 mt-2 text-lg opacity-80">This field is hard-coded into the database schema and cannot be bypassed.</p>
+                    </div>
+                    <i data-lucide="shield-check" class="w-40 h-40 absolute -right-4 -bottom-4 opacity-10 group-hover:rotate-12 transition-transform duration-700"></i>
+                </div>
+
+                <div id="builder-canvas" class="space-y-6"></div>
+
+                <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+                    <button onclick="addQuestion('text')" class="p-6 bg-white rounded-3xl border border-slate-200 hover:border-indigo-500 hover:shadow-xl transition flex flex-col items-center gap-3">
+                        <i data-lucide="type" class="text-slate-400"></i><span class="text-[10px] font-black uppercase">Short</span>
+                    </button>
+                    <button onclick="addQuestion('long')" class="p-6 bg-white rounded-3xl border border-slate-200 hover:border-indigo-500 hover:shadow-xl transition flex flex-col items-center gap-3">
+                        <i data-lucide="align-left" class="text-slate-400"></i><span class="text-[10px] font-black uppercase">Paragraph</span>
+                    </button>
+                    <button onclick="addQuestion('choice')" class="p-6 bg-white rounded-3xl border border-slate-200 hover:border-indigo-500 hover:shadow-xl transition flex flex-col items-center gap-3">
+                        <i data-lucide="check-circle-2" class="text-slate-400"></i><span class="text-[10px] font-black uppercase">Choice</span>
+                    </button>
+                    <button onclick="addQuestion('scale')" class="p-6 bg-white rounded-3xl border border-slate-200 hover:border-indigo-500 hover:shadow-xl transition flex flex-col items-center gap-3">
+                        <i data-lucide="move-horizontal" class="text-slate-400"></i><span class="text-[10px] font-black uppercase">Scale</span>
+                    </button>
+                    <button onclick="addQuestion('date')" class="p-6 bg-white rounded-3xl border border-slate-200 hover:border-indigo-500 hover:shadow-xl transition flex flex-col items-center gap-3">
+                        <i data-lucide="calendar-days" class="text-slate-400"></i><span class="text-[10px] font-black uppercase">Date</span>
+                    </button>
+                    <button onclick="addQuestion('rating')" class="p-6 bg-white rounded-3xl border border-slate-200 hover:border-indigo-500 hover:shadow-xl transition flex flex-col items-center gap-3">
+                        <i data-lucide="star" class="text-slate-400"></i><span class="text-[10px] font-black uppercase">Rating</span>
+                    </button>
+                </div>
+            </section>
+
+            <section id="analytics-tab" class="tab-content space-y-8">
+                <div class="grid grid-cols-4 gap-6">
+                    <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 text-center">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2">Submissions</p>
+                        <h3 id="stat-count" class="text-6xl font-black font-heading italic">0</h3>
+                    </div>
+                    <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 text-center">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2">Unique Users</p>
+                        <h3 id="stat-unique" class="text-6xl font-black font-heading text-indigo-600 italic">0</h3>
+                    </div>
+                    <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 text-center">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2">Engagement</p>
+                        <h3 id="stat-engagement" class="text-6xl font-black font-heading text-emerald-500 italic">0%</h3>
+                    </div>
+                    <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 text-center">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2">Status</p>
+                        <h3 class="text-2xl font-black font-heading text-slate-800 uppercase mt-4">Active</h3>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-8">
+                    <div class="bg-white p-12 rounded-[3.5rem] shadow-sm border border-slate-100">
+                        <h4 class="font-black text-xl mb-8 flex items-center gap-2"><i data-lucide="activity"></i> Submission Velocity</h4>
+                        <canvas id="velocityChart"></canvas>
+                    </div>
+                    <div class="bg-white p-12 rounded-[3.5rem] shadow-sm border border-slate-100">
+                        <h4 class="font-black text-xl mb-8 flex items-center gap-2"><i data-lucide="pie-chart"></i> Question Distribution</h4>
+                        <canvas id="distChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="data-tab" class="tab-content space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-4xl font-black italic tracking-tighter">Singularity Records</h2>
+                    <div class="flex gap-2">
+                        <button onclick="exportData('csv')" class="bg-white border px-6 py-2 rounded-xl text-xs font-bold hover:bg-slate-50 transition">Export CSV</button>
+                        <button onclick="exportData('json')" class="bg-white border px-6 py-2 rounded-xl text-xs font-bold hover:bg-slate-50 transition">Export JSON</button>
+                        <button onclick="clearAllData()" class="bg-red-50 text-red-500 px-6 py-2 rounded-xl text-xs font-black uppercase hover:bg-red-500 hover:text-white transition">Wipe System</button>
+                    </div>
+                </div>
+                <div id="data-grid" class="space-y-4"></div>
+            </section>
+
+            <section id="settings-tab" class="tab-content space-y-10">
+                <div class="bg-white p-12 rounded-[3rem] shadow-sm border border-slate-100">
+                    <h2 class="text-3xl font-black mb-8">System Configuration</h2>
+                    <div class="space-y-8">
+                        <div class="flex justify-between items-center p-6 bg-slate-50 rounded-3xl">
+                            <div><p class="font-black text-lg">Public Response View</p><p class="text-slate-400 text-sm">Allow respondents to see results after submission.</p></div>
+                            <input type="checkbox" id="set-public" class="w-6 h-6 accent-indigo-600">
+                        </div>
+                        <div class="flex justify-between items-center p-6 bg-slate-50 rounded-3xl">
+                            <div><p class="font-black text-lg">Response Capping</p><p class="text-slate-400 text-sm">Automatically close form after X responses.</p></div>
+                            <input type="number" id="set-cap" placeholder="0" class="w-24 p-2 rounded-xl bg-white border-none text-right font-bold">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="fill-tab" class="tab-content space-y-8 max-w-4xl mx-auto py-20">
+                <div id="fill-header" class="bg-white p-20 rounded-[5rem] shadow-2xl border-t-[30px] border-indigo-600"></div>
+                <form id="submission-form" class="space-y-6">
+                    <div class="bg-white p-12 rounded-[3rem] shadow-sm border border-slate-100">
+                        <label class="block font-black text-3xl mb-6">Respondent ID <span class="text-indigo-600">*</span></label>
+                        <input type="text" name="sys_username" required placeholder="Enter unique username..." class="w-full p-6 bg-slate-50 rounded-[2rem] outline-none focus:bg-white border-4 border-transparent focus:border-indigo-100 text-2xl font-black">
+                        <p class="mt-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">Verified Identity Protocol Enabled</p>
+                    </div>
+                    <div id="fill-questions" class="space-y-6"></div>
+                    <div class="pt-10 flex flex-col gap-6">
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-10 rounded-[4rem] font-black text-4xl shadow-2xl shadow-indigo-200 hover:scale-[1.02] active:scale-95 transition-all">Submit Protocol</button>
+                        <button type="reset" class="text-slate-400 font-black text-xs uppercase tracking-[0.5em] hover:text-red-500">Clear Form Buffer</button>
+                    </div>
+                </form>
+            </section>
+
+        </main>
     </div>
 
     <script>
-        let aCtx, osc;
-        let start = Date.now();
+        let db, config = { name: '', desc: '', qs: [], settings: { pub: false, cap: 0 } }, data = [], charts = {};
 
-        function sync() {
-            const now = new Date();
-            document.getElementById('runtime').innerText = `T+ ${now.toTimeString().split(' ')[0]}`;
-            document.getElementById('cpu-load').innerText = `NEURAL_LOAD: ${Math.floor(Math.random()*15 + 85)}%`;
-            requestAnimationFrame(sync);
-        }
-        sync();
+        const req = indexedDB.open("ApexSingularityDB", 3);
+        req.onupgradeneeded = e => {
+            db = e.target.result;
+            if(!db.objectStoreNames.contains("responses")) db.createObjectStore("responses", { autoIncrement: true });
+            if(!db.objectStoreNames.contains("meta")) db.createObjectStore("meta", { keyPath: "id" });
+        };
+        req.onsuccess = e => { db = e.target.result; sync(); run(); };
 
-        window.addEventListener('mousemove', (e) => {
-            const x = (window.innerWidth / 2 - e.pageX) / 50;
-            const y = (window.innerHeight / 2 - e.pageY) / 50;
-            document.getElementById('core-ui').style.transform = `rotateX(${y}deg) rotateY(${-x}deg)`;
-        });
-
-        function tone(f, t='sawtooth') {
-            if(!aCtx) aCtx = new AudioContext();
-            let o = aCtx.createOscillator();
-            let g = aCtx.createGain();
-            o.type = t; o.frequency.value = f;
-            g.gain.setValueAtTime(0.1, aCtx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.0001, aCtx.currentTime + 0.5);
-            o.connect(g); g.connect(aCtx.destination);
-            o.start(); o.stop(aCtx.currentTime + 0.5);
+        function run() {
+            lucide.createIcons();
+            const p = new URLSearchParams(window.location.search);
+            if(p.has('live')) { 
+                document.getElementById('nav-container').style.display='none'; 
+                switchTab('fill'); 
+                renderLive(); 
+            }
         }
 
-        function process(q) {
-            const r = document.getElementById('results');
-            if(!q) { r.innerHTML = ''; return; }
-            tone(Math.random()*100 + 50, 'square');
-            const data = ["Ascension", "Singularity", "Dissolution", "Rebirth", "Override", "Eternity", "Null_Vector", "Cortex_Link"];
-            const hits = data.filter(d => d.toLowerCase().includes(q.toLowerCase()));
-            r.innerHTML = hits.map(h => `
-                <div onclick="launch('${h}')" class="p-4 border border-red-900 hover:bg-red-600 hover:text-black cursor-crosshair transition-all">
-                    <p class="text-[8px] mb-1">NODE_${Math.floor(Math.random()*9999)}</p>
-                    <p class="font-black italic text-lg uppercase">${h}</p>
+        function switchTab(t) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(t+'-tab').classList.add('active');
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active', 'text-slate-500'));
+            const activeLink = document.getElementById('m-'+t);
+            if(activeLink) activeLink.classList.add('active');
+            if(t === 'analytics') renderAnalytics();
+            if(t === 'data') renderData();
+        }
+
+        function addQuestion(type) {
+            config.qs.push({ id: Date.now(), type, label: '', req: true, opts: ['Option A', 'Option B'] });
+            renderBuilder();
+            save();
+        }
+
+        function renderBuilder() {
+            const container = document.getElementById('builder-canvas');
+            container.innerHTML = config.qs.map((q, i) => `
+                <div class="q-node bg-white p-12 rounded-[3rem] shadow-sm border border-slate-100 relative group">
+                    <button onclick="removeQuestion(${i})" class="absolute top-10 right-10 text-slate-200 hover:text-red-500 transition"><i data-lucide="x-circle"></i></button>
+                    <div class="flex items-center gap-3 mb-6">
+                        <span class="bg-indigo-50 text-indigo-600 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">Field_${q.id}</span>
+                        <span class="text-slate-300 text-[10px] uppercase font-bold tracking-widest">${q.type} Field</span>
+                    </div>
+                    <input type="text" value="${q.label}" oninput="updateQ(${i},'label',this.value)" placeholder="Enter Question Label..." class="text-3xl font-black w-full outline-none bg-transparent border-b-4 border-transparent focus:border-indigo-50 pb-2 mb-8 font-heading">
+                    
+                    ${q.type === 'choice' ? `
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            ${q.opts.map((o, oi) => `<input type="text" value="${o}" oninput="updateOpt(${i},${oi},this.value)" class="p-4 bg-slate-50 rounded-2xl text-sm font-bold border-none outline-none focus:bg-indigo-50 transition">`).join('')}
+                            <button onclick="addOpt(${i})" class="p-4 border-2 border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 hover:text-indigo-600 hover:border-indigo-400 transition-all">+ Add New Choice</button>
+                        </div>
+                    ` : `<div class="h-24 w-full bg-slate-50 rounded-[2rem] border-4 border-dashed border-slate-100 flex items-center justify-center italic text-slate-300 font-bold">Singularity Input Buffer</div>`}
+
+                    <div class="flex items-center gap-2 mt-4 pt-6 border-t border-slate-50">
+                        <input type="checkbox" ${q.req ? 'checked' : ''} onchange="updateQ(${i},'req',this.checked)" class="w-4 h-4 accent-indigo-600">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Mandatory Logic</span>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function updateQ(i,k,v) { config.qs[i][k]=v; save(); }
+        function removeQuestion(i) { config.qs.splice(i,1); renderBuilder(); save(); }
+        function addOpt(i) { config.qs[i].opts.push('New Choice'); renderBuilder(); save(); }
+        function updateOpt(i,oi,v) { config.qs[i].opts[oi]=v; save(); }
+
+        function save() {
+            config.name = document.getElementById('form-name').value;
+            config.desc = document.getElementById('form-desc').value;
+            config.settings.pub = document.getElementById('set-public').checked;
+            config.settings.cap = document.getElementById('set-cap').value;
+            db.transaction("meta","readwrite").objectStore("meta").put({id:"protocol", ...config});
+        }
+
+        async function sync() {
+            db.transaction("meta","readonly").objectStore("meta").get("protocol").onsuccess = e => {
+                if(e.target.result) {
+                    config = e.target.result;
+                    document.getElementById('form-name').value = config.name;
+                    document.getElementById('form-desc').value = config.desc;
+                    document.getElementById('set-public').checked = config.settings.pub;
+                    document.getElementById('set-cap').value = config.settings.cap;
+                    renderBuilder();
+                }
+            };
+            db.transaction("responses","readonly").objectStore("responses").getAll().onsuccess = e => data = e.target.result;
+        }
+
+        function renderLive() {
+            document.getElementById('fill-header').innerHTML = `<h1 class="text-8xl font-black font-heading tracking-tighter">${config.name||'Singularity'}</h1><p class="text-3xl text-slate-400 mt-6 font-light leading-relaxed">${config.desc||''}</p>`;
+            document.getElementById('fill-questions').innerHTML = config.qs.map(q => `
+                <div class="bg-white p-16 rounded-[4rem] shadow-sm border border-slate-100">
+                    <label class="block font-black text-4xl mb-10 font-heading">${q.label} ${q.req?'<span class="text-indigo-600">*</span>':''}</label>
+                    ${q.type === 'choice' ? q.opts.map(o => `
+                        <label class="flex items-center gap-6 p-8 mb-4 hover:bg-slate-50 rounded-[2.5rem] border-4 border-transparent hover:border-indigo-50 cursor-pointer transition-all">
+                            <input type="radio" name="${q.id}" value="${o}" ${q.req?'required':''} class="w-8 h-8 accent-indigo-600">
+                            <span class="text-2xl font-bold text-slate-700">${o}</span>
+                        </label>
+                    `).join('') : q.type === 'scale' ? `
+                        <input type="range" name="${q.id}" min="1" max="100" class="w-full h-4 bg-slate-100 rounded-full appearance-none">
+                        <div class="flex justify-between font-black text-slate-300 mt-6 text-xs uppercase tracking-widest"><span>Min Range</span><span>Center</span><span>Max Range</span></div>
+                    ` : `<input type="text" name="${q.id}" ${q.req?'required':''} class="w-full p-8 bg-slate-50 rounded-[2.5rem] outline-none border-4 border-transparent focus:border-indigo-600 text-3xl font-black transition-all">`}
                 </div>
             `).join('');
         }
 
-        function launch(m) {
-            tone(20, 'sine');
-            document.getElementById('void').classList.remove('hidden');
-            document.getElementById('void-text').innerText = m;
-            let p = 0;
-            const iv = setInterval(() => {
-                p += Math.random() * 15;
-                document.getElementById('progress').style.width = p + '%';
-                tone(100 + p, 'sawtooth', 0.01);
-                if(p >= 100) {
-                    clearInterval(iv);
-                    const msg = new SpeechSynthesisUtterance(`Entity confirmed. Welcome to ${m}.`);
-                    msg.pitch = 0.1; msg.rate = 0.5; window.speechSynthesis.speak(msg);
-                }
-            }, 100);
+        document.getElementById('submission-form').onsubmit = e => {
+            e.preventDefault();
+            const payload = { _timestamp: new Date().toISOString(), ...Object.fromEntries(new FormData(e.target)) };
+            const tx = db.transaction("responses","readwrite");
+            tx.objectStore("responses").add(payload);
+            tx.oncomplete = () => { alert("Protocol Transmitted Successfully."); e.target.reset(); };
+        };
+
+        function renderAnalytics() {
+            document.getElementById('stat-count').innerText = data.length;
+            document.getElementById('stat-unique').innerText = new Set(data.map(d => d.sys_username)).size;
+            
+            const vCtx = document.getElementById('velocityChart').getContext('2d');
+            if(charts.v) charts.v.destroy();
+            charts.v = new Chart(vCtx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d._timestamp.split('T')[1].split('.')[0]),
+                    datasets: [{ label: 'Signals', data: data.map((_,i)=>i+1), borderColor: '#4f46e5', tension: 0.4, fill: true, backgroundColor: 'rgba(79, 70, 229, 0.05)' }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
         }
 
-        function terminate() {
-            location.reload();
+        function renderData() {
+            const grid = document.getElementById('data-grid');
+            grid.innerHTML = data.map(d => `
+                <div class="bg-white p-10 rounded-[3rem] border border-slate-100 flex justify-between items-center group">
+                    <div class="flex items-center gap-6">
+                        <div class="w-16 h-16 bg-slate-900 text-white rounded-[1.5rem] flex items-center justify-center font-black text-2xl">${d.sys_username?.charAt(0).toUpperCase()}</div>
+                        <div><p class="text-2xl font-black">${d.sys_username}</p><p class="text-[10px] font-bold text-slate-300 uppercase mt-1 tracking-widest">${d._timestamp}</p></div>
+                    </div>
+                    <div class="flex gap-4">
+                        ${Object.entries(d).filter(([k])=>!k.startsWith('_') && k!=='sys_username').map(([k,v])=>`<div class="text-right"><p class="text-[8px] font-black text-slate-300 uppercase mb-1">Field ${k}</p><p class="font-bold text-sm">${v}</p></div>`).join('')}
+                    </div>
+                </div>
+            `).reverse().join('');
         }
 
-        const canvas = document.getElementById('canvas-webgl');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        function particles() {
-            ctx.clearRect(0,0,canvas.width, canvas.height);
-            ctx.fillStyle = "#300";
-            for(let i=0; i<100; i++) {
-                ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 2, 2);
-            }
-            requestAnimationFrame(particles);
+        function copyLink() {
+            const url = window.location.origin + window.location.pathname + '?live=1';
+            navigator.clipboard.writeText(url);
+            alert("Singularity Form Link Deployed to Clipboard.");
         }
-        particles();
 
-        const s = document.getElementById('stream-alpha');
-        setInterval(() => {
-            s.innerText = Array(50).fill(0).map(() => Math.random() > 0.5 ? "1" : "0").join(" ");
-        }, 100);
+        function clearAllData() { if(confirm("NUCLEAR PROTOCOL: Wipe all records from local IndexedDB?")) { db.transaction("responses","readwrite").objectStore("responses").clear(); location.reload(); } }
 
-        document.addEventListener('keydown', e => { if(e.key === 'Escape') terminate(); });
+        function exportData(fmt) {
+            const blob = new Blob([fmt === 'json' ? JSON.stringify(data) : "User,Timestamp,Data\n" + data.map(d => `${d.sys_username},${d._timestamp},"${JSON.stringify(d)}"`).join("\n")], { type: 'text/'+fmt });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `APEX_300_EXPORT.${fmt}`; a.click();
+        }
     </script>
 </body>
 </html>
